@@ -4,10 +4,14 @@
 \alias{minHGT}
 \title{minHGT permutation test}
 \usage{
-minHGT(thisVector, numPerms = 1000)
+minHGT(thisVector, numPerms = 1000, verbose = 1)
 }
 \arguments{
 \item{thisVector}{A vector of individual Bernoulli trials (https://en.wikipedia.org/wiki/Bernoulli_trial). Each value must be a 0 or 1.}
+
+\item{numPerms}{The number of permutations to run (defaults to 1000)}
+
+\item{verbose}{Determines whether to print the number of permutation the run is on (default is "False", prints every 100 permutations)}
 }
 \description{
 This function takes a list of indicator values (0s and 1s) ranked  by some orthogonal measure,
@@ -28,7 +32,7 @@ than the value obtained by the given list, then divided by the total number of p
 v1 <- round(runif(100,0,.7),0)
 v2 <- round(runif(100,0.3,1),0)
 testVector <- c(v2,v1)
-testOut <- minHGT(testVector)
+testOut <-  minHGT(testVector,1000,verbose=1)
 testOut$pval  # the probability of observing a given minimum mypergeometric value given random shuffling of the vector
 testOut$crit  # the set size which yeilds the greatest minHGT for the given vector
 }

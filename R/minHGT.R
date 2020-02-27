@@ -14,31 +14,62 @@
 #' than the value obtained by the given list, then divided by the total number of permutations attempted.
 #'
 #' @param thisVector A vector of individual Bernoulli trials (https://en.wikipedia.org/wiki/Bernoulli_trial). Each value must be a 0 or 1. 
+#' @param numPerms The number of permutations to run (defaults to 1000)
+#' @param verbose Determines whether to print the number of permutation the run is on (default is "False", prints every 100 permutations)
 #' @export
 #' @examples
 #' v1 <- round(runif(100,0,.7),0)
 #' v2 <- round(runif(100,0.3,1),0)
 #' testVector <- c(v2,v1)
-#' testOut <- minHGT(testVector)
+#' testOut <-  minHGT(testVector,1000,verbose=1)
 #' testOut$pval  # the probability of observing a given minimum mypergeometric value given random shuffling of the vector
 #' testOut$crit  # the set size which yeilds the greatest minHGT for the given vector
 
-minHGT <- function(thisVector,numPerms=1000) {
+minHGT <- function(thisVector, numPerms=1000, verbose=1) {
 	thisVector[which(thisVector>0)] <- 1
 	
 	getMinHGT <- function(thisVector) {
-		thisMinHGT = 1
-		criticalPoint = 1
 		thisM <- sum(thisVector==1)
 		thisN <- sum(thisVector==0)
-		for (i in 10:(length(thisVector)-10)) {
-			thisQ = sum(thisVector[1:i]==1)
-			thisK = i
-			tmpPval = phyper(thisQ, thisM, thisN, thisK, lower.tail=F)
-			if (tmpPval <= thisMinHGT) {
-				thisMinHGT = tmpPval
-				criticalPoint = i
+		
+		endLimit <- 100
+		currentMin <- endLimit
+		currentMax <- length(thisVector)-endLimit
+		oMag <- log10(length(thisVector[currentMin:currentMax]))		
+		
+		numLoops = 0
+		thisMinHGT = 1
+		criticalPoint = 1
+		
+		while (oMag>0.6 & numLoops < oMag) {
+	
+			
+			cutoffs <- currentMin + unique(round(10^ (c(1:100) * oMag/100),0))
+			cutoffs <- cutoffs[which(cutoffs > endLimit & cutoffs < currentMax)]
+			
+			for (i in 1:length(cutoffs)) {
+				thisQ = sum(thisVector[1:cutoffs[i]]==1)
+				thisK = cutoffs[i]
+				tmpPval = phyper(thisQ, thisM, thisN, thisK, lower.tail=F)
+				if (tmpPval <= thisMinHGT) {
+					thisMinHGT    <-  tmpPval
+					criticalPoint <- cutoffs[i]
+					
+					if (i > 1) { 
+						currentMin <- cutoffs[i-1]
+					} else { 
+						currentMin <- endLimit 
+					}
+					if (i < length(cutoffs)) { 
+						currentMax <- cutoffs[i+1] 
+					} else { 
+						currentMax <- length(thisVector)-endLimit
+					}
+					oMag <- log10(length(thisVector[currentMin:currentMax]))
+				}
 			}
+			
+			numLoops <- numLoops + 1
 		}
 		op <- c()
 		op$minHGT <- thisMinHGT
@@ -52,6 +83,7 @@ minHGT <- function(thisVector,numPerms=1000) {
 	
 	numLesser = 0
 	for (i in 1:numPerms) {
+		if (verbose & i %% 100 == 0) { print (paste("perm",i)) }
 		tmpMinHGT <- getMinHGT(sample(thisVector))
 		if (tmpMinHGT$minHGT <= thisResult$minHGT) {numLesser <- numLesser + 1}
 	}
